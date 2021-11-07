@@ -47,7 +47,9 @@ class Register extends StatelessWidget {
                       ),
                     ),
                     ElevatedButton(
-                      onPressed: () => print('Login clicked'),
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/categories');
+                      },
                       child: Text('Register'),
                       style: ElevatedButton.styleFrom(
                         minimumSize: Size(double.infinity, 36),
