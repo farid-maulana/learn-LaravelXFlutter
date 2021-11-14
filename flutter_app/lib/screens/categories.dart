@@ -1,5 +1,6 @@
 // ignore_for_file: prefer_const_constructors
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -26,6 +27,9 @@ class Categories extends StatefulWidget {
 
 class _CategoriesState extends State<Categories> {
   late Future<List<Category>> futureCategories;
+  final _formKey = GlobalKey<FormState>();
+  late Category selectedCategory;
+  final categoryNameController = TextEditingController();
 
   Future<List<Category>> fetchCategories() async {
     http.Response response = await http.get(
@@ -35,6 +39,28 @@ class _CategoriesState extends State<Categories> {
     List categories = jsonDecode(response.body);
 
     return categories.map((category) => Category.fromJson(category)).toList();
+  }
+
+  Future saveCategory() async {
+    final form = _formKey.currentState;
+
+    if (!form!.validate()) {
+      return;
+    }
+
+    String uri = 'http://localhost:8000/api/categories/' +
+        selectedCategory.id.toString();
+
+    await http.put(
+      Uri.parse(uri),
+      headers: {
+        HttpHeaders.contentTypeHeader: 'application/json',
+        HttpHeaders.acceptHeader: 'application/json',
+      },
+      body: jsonEncode({'name': categoryNameController.text}),
+    );
+
+    Navigator.pop(context);
   }
 
   @override
@@ -59,6 +85,46 @@ class _CategoriesState extends State<Categories> {
                 Category category = snapshot.data![index];
                 return ListTile(
                   title: Text(category.name),
+                  trailing: IconButton(
+                    icon: Icon(Icons.edit),
+                    onPressed: () {
+                      selectedCategory = category;
+                      categoryNameController.text = category.name;
+                      showModalBottomSheet(
+                        context: context,
+                        builder: (context) {
+                          return Padding(
+                            padding: EdgeInsets.all(10),
+                            child: Form(
+                              key: _formKey,
+                              child: Column(
+                                children: [
+                                  TextFormField(
+                                    controller: categoryNameController,
+                                    validator: (String? value) {
+                                      if (value!.isEmpty) {
+                                        return 'Enter category name';
+                                      }
+
+                                      return null;
+                                    },
+                                    decoration: InputDecoration(
+                                      labelText: 'Category name',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () => saveCategory(),
+                                    child: Text('Save'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
                 );
               },
             );
